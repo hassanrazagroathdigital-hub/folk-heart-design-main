@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  // Expose VITE_* and NEXT_PUBLIC_* (the names Vercel's Supabase integration creates).
+  // Only these public prefixes reach the browser; secrets like SUPABASE_SERVICE_ROLE_KEY never do.
+  envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

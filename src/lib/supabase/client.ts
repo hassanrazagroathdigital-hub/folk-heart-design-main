@@ -1,7 +1,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL?.trim() ?? "";
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? "";
+const env = import.meta.env;
+// VITE_* wins; NEXT_PUBLIC_* are what Vercel's Supabase integration sets automatically.
+const url = (env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+const anonKey = (
+  env.VITE_SUPABASE_ANON_KEY ||
+  env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  ""
+).trim();
 
 function isValidUrl(value: string) {
   try {

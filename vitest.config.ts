@@ -4,6 +4,8 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  // Tests must not depend on a developer's local .env (no real Supabase in tests).
+  envDir: "./src/test",
   test: {
     environment: "jsdom",
     globals: true,
