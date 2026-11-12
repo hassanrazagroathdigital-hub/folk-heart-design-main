@@ -1,0 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Lato:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 33% 98%;
+    --foreground: 0 0% 5%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+
+    --primary: 222 56% 38%;
+    --primary-foreground: 36 33% 98%;
+
+    --secondary: 33 28% 91%;
+    --secondary-foreground: 0 0% 5%;
+
+    --muted: 33 28% 91%;
+    --muted-foreground: 20 10% 40%;
+
+    --accent: 33 28% 91%;
+    --accent-foreground: 0 0% 5%;
+
+    --destructive: 4 64% 46%;
+    --destructive-foreground: 36 33% 98%;
+
+    --border: 33 20% 85%;
+    --input: 33 20% 85%;
+    --ring: 222 56% 38%;
+
+    --radius: 1.25rem;
+
+    /* Brand tokens */
+    --canvas: 36 33% 98%;
+    --pattern-black: 0 0% 5%;
+    --folk-blue: 222 56% 38%;
+    --berry-red: 4 64% 46%;
+    --leaf-green: 110 33% 37%;
+    --warm-linen: 30 28% 91%;
+
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Lato', sans-serif;
+
+    --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.08);
+    --shadow-card-hover: 0 12px 32px -8px hsl(0 0% 0% / 0.14);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .eyebrow {
+    font-family: var(--font-body);
+    @apply text-xs font-normal uppercase tracking-[0.12em] text-primary;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    @apply text-4xl md:text-5xl text-foreground;
+  }
+
+  .section-title-italic {
+    font-family: var(--font-display);
+    @apply text-4xl md:text-5xl italic text-foreground;
+  }
+
+  .body-text {
+    font-family: var(--font-body);
+    @apply text-base md:text-lg font-light leading-relaxed text-muted-foreground;
+  }
+
+  .card-product {
+    @apply rounded-[20px] overflow-hidden bg-card shadow-[var(--shadow-card)] transition-all duration-300;
+  }
+  .card-product:hover {
+    @apply shadow-[var(--shadow-card-hover)];
+    transform: translateY(-6px);
+  }
+  .card-product:hover img {
+    transform: scale(1.04);
+  }
+
+  .btn-primary-cta {
+    font-family: var(--font-body);
+    @apply inline-block px-8 py-3.5 rounded-full bg-destructive text-destructive-foreground font-medium lowercase text-base transition-all duration-300 hover:opacity-90 cursor-pointer;
+  }
+
+  .btn-secondary-cta {
+    font-family: var(--font-body);
+    @apply inline-block px-8 py-3.5 rounded-full bg-primary text-primary-foreground font-medium lowercase text-base transition-all duration-300 hover:opacity-90 cursor-pointer;
+  }
+
+  .link-draw {
+    @apply relative inline-block;
+  }
+  .link-draw::after {
+    content: '';
+    @apply absolute w-full h-[2px] bottom-0 left-0 bg-destructive origin-bottom-right transition-transform duration-300 scale-x-0;
+  }
+  .link-draw:hover::after {
+    @apply origin-bottom-left scale-x-100;
+  }
+
+  .pattern-strip {
+    @apply w-full overflow-hidden;
+    height: 40px;
+  }
+  .pattern-strip img {
+    @apply h-full w-auto;
+    object-fit: cover;
+  }
+
+  .soft-rise {
+    @apply opacity-0 translate-y-6;
+    animation: softRise 0.7s ease-out forwards;
+  }
+
+  .nav-link {
+    font-family: var(--font-body);
+    @apply text-sm font-normal tracking-wide text-foreground transition-colors duration-200 hover:text-primary relative;
+  }
+  .nav-link::after {
+    content: '';
+    @apply absolute w-full h-[1.5px] bottom-[-2px] left-0 bg-destructive origin-bottom-right transition-transform duration-300 scale-x-0;
+  }
+  .nav-link:hover::after {
+    @apply origin-bottom-left scale-x-100;
+  }
+}
+
+@keyframes softRise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
