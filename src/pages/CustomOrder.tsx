@@ -8,21 +8,28 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { FORMSPREE_ENDPOINT } from "@/lib/cms/inquiries";
+import { usePublicFaqs, useSiteSettings } from "@/lib/cms/hooks";
+import { FormError, HoneypotField, useInquirySubmit } from "@/hooks/use-inquiry-submit";
+
+const EMPTY_FORM = {
+  fullName: "",
+  email: "",
+  phone: "",
+  itemType: "",
+  sizing: "",
+  fabric: "",
+  occasion: "",
+  quantity: 1,
+  notes: "",
+  contactMethod: "Email",
+};
 
 const CustomOrder = () => {
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    itemType: "",
-    sizing: "",
-    fabric: "",
-    occasion: "",
-    quantity: 1,
-    notes: "",
-    contactMethod: "Email",
-  });
-  const [submitted, setSubmitted] = useState(false);
+  const { custom_order } = useSiteSettings();
+  const { data: faqs = [] } = usePublicFaqs();
+  const [form, setForm] = useState(EMPTY_FORM);
+  const { submitted, setSubmitted, submitting, error, submit } = useInquirySubmit();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -33,17 +40,26 @@ const CustomOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    try {
-      await fetch("https://formspree.io/f/mjgdawap", {
-        method: "POST",
-        body: new FormData(form),
-        headers: { Accept: "application/json" },
-      });
-      setSubmitted(true);
-    } catch {
-      setSubmitted(true);
-    }
+    const ok = await submit(
+      {
+        type: "custom_order",
+        name: form.fullName,
+        email: form.email,
+        phone: form.phone,
+        subject: form.itemType ? `Custom order: ${form.itemType}` : "Custom order",
+        message: form.notes,
+        details: {
+          itemType: form.itemType,
+          sizing: form.sizing,
+          fabric: form.fabric,
+          occasion: form.occasion,
+          quantity: Number(form.quantity) || 1,
+          preferredContact: form.contactMethod,
+        },
+      },
+      e.currentTarget,
+    );
+    if (ok) setForm(EMPTY_FORM);
   };
 
   const inputCls =
@@ -58,10 +74,10 @@ const CustomOrder = () => {
 
       {/* Hero */}
       <section className="bg-background pt-12 pb-16 md:pt-16 md:pb-20 px-6 text-center">
-        <h1 className="section-title text-destructive mb-4">Let's Create Something Special</h1>
-        <p className="body-text max-w-4xl mx-auto text-sm md:text-base md:whitespace-nowrap">
-          Every Matka and Me piece can be made just for you. Tell us your vision and we will bring it to life.
-        </p>
+        <h1 className="section-title text-destructive mb-4">{custom_order.title}</h1>
+        {custom_order.intro && (
+          <p className="body-text max-w-4xl mx-auto text-sm md:text-base md:whitespace-nowrap">{custom_order.intro}</p>
+        )}
       </section>
 
       {/* How It Works */}
@@ -104,7 +120,7 @@ const CustomOrder = () => {
       <section className="bg-background py-16 md:py-24 px-6">
         <div className="max-w-2xl mx-auto">
           {submitted ? (
-            <div className="bg-card rounded-[20px] p-10 shadow-[var(--shadow-card)] text-center space-y-4">
+            <div className="bg-card rounded-[20px] p-10 shadow-[var(--shadow-card)] text-center space-y-4" role="status">
               <h3 className="font-display text-2xl text-foreground">Thank you! 💛</h3>
               <p className="body-text">
                 Your custom order inquiry has been sent. Emily will get back to you soon!
@@ -115,29 +131,30 @@ const CustomOrder = () => {
             </div>
           ) : (
             <form
-              action="https://formspree.io/f/mjgdawap"
+              action={FORMSPREE_ENDPOINT}
               method="POST"
               onSubmit={handleSubmit}
-              className="bg-card rounded-[20px] p-8 md:p-10 shadow-[var(--shadow-card)] space-y-5"
+              className="relative bg-card rounded-[20px] p-8 md:p-10 shadow-[var(--shadow-card)] space-y-5"
             >
               <input type="hidden" name="_subject" value="New Custom Order Inquiry from Website" />
+              <HoneypotField />
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Full Name *</label>
-                <input type="text" name="fullName" required value={form.fullName} onChange={handleChange} placeholder="Your full name" className={inputCls} />
+                <label htmlFor="co-name" className="font-body text-sm text-foreground block mb-1.5">Full Name *</label>
+                <input id="co-name" type="text" name="fullName" required maxLength={200} value={form.fullName} onChange={handleChange} placeholder="Your full name" className={inputCls} />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Email Address *</label>
-                <input type="email" name="email" required value={form.email} onChange={handleChange} placeholder="your@email.com" className={inputCls} />
+                <label htmlFor="co-email" className="font-body text-sm text-foreground block mb-1.5">Email Address *</label>
+                <input id="co-email" type="email" name="email" required maxLength={320} value={form.email} onChange={handleChange} placeholder="your@email.com" className={inputCls} />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">
+                <label htmlFor="co-phone" className="font-body text-sm text-foreground block mb-1.5">
                   Phone Number <span className="text-muted-foreground text-xs">(optional but helpful for quick questions)</span>
                 </label>
-                <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="(555) 123-4567" className={inputCls} />
+                <input id="co-phone" type="tel" name="phone" maxLength={50} value={form.phone} onChange={handleChange} placeholder="(555) 123-4567" className={inputCls} />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Item Type *</label>
-                <select name="itemType" required value={form.itemType} onChange={handleChange} className={inputCls}>
+                <label htmlFor="co-type" className="font-body text-sm text-foreground block mb-1.5">Item Type *</label>
+                <select id="co-type" name="itemType" required value={form.itemType} onChange={handleChange} className={inputCls}>
                   <option value="">Select a type...</option>
                   {["Apron", "Quilt", "Baby Blanket", "Car Seat Cover", "Lovey", "Gift Set", "Other"].map((o) => (
                     <option key={o} value={o}>{o}</option>
@@ -145,27 +162,27 @@ const CustomOrder = () => {
                 </select>
               </div>
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Size or Sizing Details</label>
-                <input type="text" name="sizing" value={form.sizing} onChange={handleChange} placeholder="Adult L, Child size 4, Baby newborn, etc." className={inputCls} />
+                <label htmlFor="co-sizing" className="font-body text-sm text-foreground block mb-1.5">Size or Sizing Details</label>
+                <input id="co-sizing" type="text" name="sizing" maxLength={300} value={form.sizing} onChange={handleChange} placeholder="Adult L, Child size 4, Baby newborn, etc." className={inputCls} />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Fabric or Color Preferences</label>
-                <textarea name="fabric" value={form.fabric} onChange={handleChange} rows={3} placeholder="I love florals, I want something in blue and white, I want to match the nursery, etc." className={`${inputCls} resize-none`} />
+                <label htmlFor="co-fabric" className="font-body text-sm text-foreground block mb-1.5">Fabric or Color Preferences</label>
+                <textarea id="co-fabric" name="fabric" maxLength={1000} value={form.fabric} onChange={handleChange} rows={3} placeholder="I love florals, I want something in blue and white, I want to match the nursery, etc." className={`${inputCls} resize-none`} />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Occasion</label>
-                <input type="text" name="occasion" value={form.occasion} onChange={handleChange} placeholder="Baby shower, Birthday, Christmas gift, Just because" className={inputCls} />
+                <label htmlFor="co-occasion" className="font-body text-sm text-foreground block mb-1.5">Occasion</label>
+                <input id="co-occasion" type="text" name="occasion" maxLength={300} value={form.occasion} onChange={handleChange} placeholder="Baby shower, Birthday, Christmas gift, Just because" className={inputCls} />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Quantity</label>
-                <input type="number" name="quantity" min={1} value={form.quantity} onChange={handleChange} className={`${inputCls} w-24`} />
+                <label htmlFor="co-qty" className="font-body text-sm text-foreground block mb-1.5">Quantity</label>
+                <input id="co-qty" type="number" name="quantity" min={1} max={999} value={form.quantity} onChange={handleChange} className={`${inputCls} w-24`} />
               </div>
               <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Additional Notes or Special Requests</label>
-                <textarea name="notes" value={form.notes} onChange={handleChange} rows={4} placeholder="Anything else you'd like us to know..." className={`${inputCls} resize-none`} />
+                <label htmlFor="co-notes" className="font-body text-sm text-foreground block mb-1.5">Additional Notes or Special Requests</label>
+                <textarea id="co-notes" name="notes" maxLength={3000} value={form.notes} onChange={handleChange} rows={4} placeholder="Anything else you'd like us to know..." className={`${inputCls} resize-none`} />
               </div>
-              <div>
-                <label className="font-body text-sm text-foreground block mb-1.5">Preferred Contact Method *</label>
+              <fieldset>
+                <legend className="font-body text-sm text-foreground block mb-1.5">Preferred Contact Method *</legend>
                 <div className="flex gap-6 font-body text-sm">
                   {["Email", "Phone", "Either"].map((m) => (
                     <label key={m} className="flex items-center gap-2 cursor-pointer">
@@ -181,9 +198,10 @@ const CustomOrder = () => {
                     </label>
                   ))}
                 </div>
-              </div>
-              <button type="submit" className="btn-primary-cta w-full text-center">
-                send my request
+              </fieldset>
+              <FormError message={error} />
+              <button type="submit" disabled={submitting} className="btn-primary-cta w-full text-center disabled:opacity-60">
+                {submitting ? "sending…" : "send my request"}
               </button>
               <p className="font-body text-xs text-muted-foreground text-center">
                 We will never share your information. All custom orders are confirmed via email
@@ -195,40 +213,25 @@ const CustomOrder = () => {
       </section>
 
       {/* FAQ */}
-      <section className="bg-warm-linen py-16 md:py-20 px-6">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="section-title-italic text-2xl md:text-3xl text-center mb-10">
-            Frequently Asked Questions
-          </h2>
-          <Accordion type="single" collapsible className="space-y-2">
-            {[
-              {
-                q: "How long does a custom order take?",
-                a: "Most custom pieces are completed within 2 to 4 weeks depending on complexity and current order volume.",
-              },
-              {
-                q: "Can I choose my own fabric?",
-                a: "Absolutely. You can share a fabric you love, a color palette, or a theme and Emily will help you find the perfect match.",
-              },
-              {
-                q: "Do you ship?",
-                a: "Yes, we ship within the US.",
-              },
-              {
-                q: "What is your return policy on custom items?",
-                a: "Because each piece is custom made, we do not accept returns but we will always work with you to make it right.",
-              },
-            ].map((faq, i) => (
-              <AccordionItem key={i} value={`faq-${i}`} className="bg-card rounded-[20px] border border-border px-6">
-                <AccordionTrigger className="font-display text-base hover:no-underline">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="body-text text-sm">{faq.a}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </section>
+      {faqs.length > 0 && (
+        <section className="bg-warm-linen py-16 md:py-20 px-6">
+          <div className="max-w-2xl mx-auto">
+            <h2 className="section-title-italic text-2xl md:text-3xl text-center mb-10">
+              {custom_order.faq_title}
+            </h2>
+            <Accordion type="single" collapsible className="space-y-2">
+              {faqs.map((faq) => (
+                <AccordionItem key={faq.id} value={faq.id} className="bg-card rounded-[20px] border border-border px-6">
+                  <AccordionTrigger className="font-display text-base hover:no-underline">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="body-text text-sm whitespace-pre-line">{faq.answer}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+      )}
 
       <PatternStrip pattern="pattern2" />
       <Footer />

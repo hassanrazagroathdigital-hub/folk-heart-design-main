@@ -3,10 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/matka-me-logo.png";
 import { Instagram, Menu, X, Mail } from "lucide-react";
 import LinktreeIcon from "@/components/LinktreeIcon";
+import { useSiteSettings } from "@/lib/cms/hooks";
+import { safeHref } from "@/lib/cms/utils";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { brand, contact } = useSiteSettings();
+  const instagram = safeHref(contact.instagram_url);
+  const linktree = safeHref(contact.linktree_url);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -32,7 +37,7 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16 md:h-20">
         <Link to="/">
-          <img src={logo} alt="Matka & Me Threads" className="h-10 md:h-12 w-auto" />
+          <img src={brand.logo_url || logo} alt={brand.name} className="h-10 md:h-12 w-auto" />
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
@@ -44,15 +49,21 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <a href="mailto:hello@matkaandmethreads.com" aria-label="Email" className="text-foreground hover:text-primary transition-colors">
-            <Mail size={20} />
-          </a>
-          <a href="https://instagram.com/matkaandmethreads" aria-label="Instagram" className="text-foreground hover:text-primary transition-colors hidden md:block" target="_blank" rel="noopener noreferrer">
-            <Instagram size={20} />
-          </a>
-          <a href="https://linktr.ee/matkaandme" aria-label="Linktree" className="text-foreground hover:text-primary transition-colors hidden md:block" target="_blank" rel="noopener noreferrer">
-            <LinktreeIcon size={18} />
-          </a>
+          {contact.email && (
+            <a href={`mailto:${contact.email}`} aria-label="Email" className="text-foreground hover:text-primary transition-colors">
+              <Mail size={20} />
+            </a>
+          )}
+          {instagram && (
+            <a href={instagram} aria-label="Instagram" className="text-foreground hover:text-primary transition-colors hidden md:block" target="_blank" rel="noopener noreferrer">
+              <Instagram size={20} />
+            </a>
+          )}
+          {linktree && (
+            <a href={linktree} aria-label="Linktree" className="text-foreground hover:text-primary transition-colors hidden md:block" target="_blank" rel="noopener noreferrer">
+              <LinktreeIcon size={18} />
+            </a>
+          )}
           <button
             className="md:hidden text-foreground"
             onClick={() => setMobileOpen(!mobileOpen)}

@@ -1,14 +1,19 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Instagram, Mail } from "lucide-react";
 import BeholdInstagram from "@/components/BeholdInstagram";
 import PatternStrip from "@/components/PatternStrip";
+import { FORMSPREE_ENDPOINT } from "@/lib/cms/inquiries";
+import { useSiteSettings } from "@/lib/cms/hooks";
+import { safeHref, stripAt } from "@/lib/cms/utils";
+import { FormError, HoneypotField, useInquirySubmit } from "@/hooks/use-inquiry-submit";
 
 const Contact = () => {
+  const { contact, contact_page } = useSiteSettings();
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
-  const [submitted, setSubmitted] = useState(false);
+  const { submitted, setSubmitted, submitting, error, submit } = useInquirySubmit();
+  const handle = stripAt(contact.instagram_handle);
+  const instagram = safeHref(contact.instagram_url);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -16,18 +21,11 @@ const Contact = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    try {
-      await fetch("https://formspree.io/f/mjgdawap", {
-        method: "POST",
-        body: new FormData(form),
-        headers: { Accept: "application/json" },
-      });
-      setSubmitted(true);
-    } catch {
-      // Formspree will still receive the submission via the form's action fallback
-      setSubmitted(true);
-    }
+    const ok = await submit(
+      { type: "contact", name: form.name, email: form.email, subject: form.subject, message: form.message },
+      e.currentTarget,
+    );
+    if (ok) setForm({ name: "", email: "", subject: "", message: "" });
   };
 
   const inputCls =
@@ -42,11 +40,8 @@ const Contact = () => {
 
       {/* Hero */}
       <section className="bg-background pt-12 pb-16 md:pt-16 md:pb-20 px-6 text-center">
-        <h1 className="section-title text-destructive mb-4">Say Hello</h1>
-        <p className="body-text max-w-xl mx-auto">
-          We would love to hear from you. Reach out with questions, custom order inquiries, or just
-          to say hi.
-        </p>
+        <h1 className="section-title text-destructive mb-4">{contact_page.title}</h1>
+        {contact_page.intro && <p className="body-text max-w-xl mx-auto">{contact_page.intro}</p>}
       </section>
 
       {/* Two Column */}
@@ -55,7 +50,7 @@ const Contact = () => {
           {/* Contact Form */}
           <div>
             {submitted ? (
-              <div className="bg-card rounded-[20px] p-10 shadow-[var(--shadow-card)] text-center space-y-4">
+              <div className="bg-card rounded-[20px] p-10 shadow-[var(--shadow-card)] text-center space-y-4" role="status">
                 <h3 className="font-display text-2xl text-foreground">Message Sent! 💛</h3>
                 <p className="body-text">We'll get back to you soon.</p>
                 <button onClick={() => setSubmitted(false)} className="btn-secondary-cta">
@@ -65,30 +60,32 @@ const Contact = () => {
             ) : (
               <form
                 id="contact-form"
-                action="https://formspree.io/f/mjgdawap"
+                action={FORMSPREE_ENDPOINT}
                 method="POST"
                 onSubmit={handleSubmit}
-                className="bg-card rounded-[20px] p-8 shadow-[var(--shadow-card)] space-y-5"
+                className="relative bg-card rounded-[20px] p-8 shadow-[var(--shadow-card)] space-y-5"
               >
                 <input type="hidden" name="_subject" value="New Contact Message from Website" />
+                <HoneypotField />
                 <div>
-                  <label className="font-body text-sm text-foreground block mb-1.5">Name *</label>
-                  <input type="text" name="name" required value={form.name} onChange={handleChange} placeholder="Your name" className={inputCls} />
+                  <label htmlFor="contact-name" className="font-body text-sm text-foreground block mb-1.5">Name *</label>
+                  <input id="contact-name" type="text" name="name" required maxLength={200} value={form.name} onChange={handleChange} placeholder="Your name" className={inputCls} />
                 </div>
                 <div>
-                  <label className="font-body text-sm text-foreground block mb-1.5">Email *</label>
-                  <input type="email" name="email" required value={form.email} onChange={handleChange} placeholder="your@email.com" className={inputCls} />
+                  <label htmlFor="contact-email" className="font-body text-sm text-foreground block mb-1.5">Email *</label>
+                  <input id="contact-email" type="email" name="email" required maxLength={320} value={form.email} onChange={handleChange} placeholder="your@email.com" className={inputCls} />
                 </div>
                 <div>
-                  <label className="font-body text-sm text-foreground block mb-1.5">Subject</label>
-                  <input type="text" name="subject" value={form.subject} onChange={handleChange} placeholder="What's this about?" className={inputCls} />
+                  <label htmlFor="contact-subject" className="font-body text-sm text-foreground block mb-1.5">Subject</label>
+                  <input id="contact-subject" type="text" name="subject" maxLength={300} value={form.subject} onChange={handleChange} placeholder="What's this about?" className={inputCls} />
                 </div>
                 <div>
-                  <label className="font-body text-sm text-foreground block mb-1.5">Message *</label>
-                  <textarea name="message" required value={form.message} onChange={handleChange} rows={5} placeholder="Your message..." className={`${inputCls} resize-none`} />
+                  <label htmlFor="contact-message" className="font-body text-sm text-foreground block mb-1.5">Message *</label>
+                  <textarea id="contact-message" name="message" required maxLength={5000} value={form.message} onChange={handleChange} rows={5} placeholder="Your message..." className={`${inputCls} resize-none`} />
                 </div>
-                <button type="submit" className="btn-primary-cta w-full text-center">
-                  send message
+                <FormError message={error} />
+                <button type="submit" disabled={submitting} className="btn-primary-cta w-full text-center disabled:opacity-60">
+                  {submitting ? "sending…" : "send message"}
                 </button>
               </form>
             )}
@@ -96,50 +93,75 @@ const Contact = () => {
 
           {/* Contact Details */}
           <div className="bg-card rounded-[20px] p-8 shadow-[var(--shadow-card)] space-y-6 h-fit">
-            <div className="space-y-1">
-              <p className="font-display text-sm text-foreground uppercase tracking-wide">Email</p>
-              <a href="mailto:hello@matkaandmethreads.com" className="body-text text-sm hover:text-primary transition-colors">
-                hello@matkaandmethreads.com
-              </a>
-            </div>
-            <div className="border-t border-dashed border-destructive/30" />
-            <div className="space-y-1">
-              <p className="font-display text-sm text-foreground uppercase tracking-wide">Instagram</p>
-              <a href="https://instagram.com/matkaandmethreads" target="_blank" rel="noopener noreferrer" className="body-text text-sm hover:text-primary transition-colors">
-                @matkaandmethreads
-              </a>
-            </div>
-            <div className="border-t border-dashed border-destructive/30" />
-            <div className="space-y-1">
-              <p className="font-display text-sm text-foreground uppercase tracking-wide">Location</p>
-              <p className="body-text text-sm">Handmade in the USA</p>
-            </div>
+            {contact.email && (
+              <div className="space-y-1">
+                <p className="font-display text-sm text-foreground uppercase tracking-wide">Email</p>
+                <a href={`mailto:${contact.email}`} className="body-text text-sm hover:text-primary transition-colors">
+                  {contact.email}
+                </a>
+              </div>
+            )}
+            {contact.phone && (
+              <>
+                <div className="border-t border-dashed border-destructive/30" />
+                <div className="space-y-1">
+                  <p className="font-display text-sm text-foreground uppercase tracking-wide">Phone</p>
+                  <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} className="body-text text-sm hover:text-primary transition-colors">
+                    {contact.phone}
+                  </a>
+                </div>
+              </>
+            )}
+            {instagram && (
+              <>
+                <div className="border-t border-dashed border-destructive/30" />
+                <div className="space-y-1">
+                  <p className="font-display text-sm text-foreground uppercase tracking-wide">Instagram</p>
+                  <a href={instagram} target="_blank" rel="noopener noreferrer" className="body-text text-sm hover:text-primary transition-colors">
+                    @{handle}
+                  </a>
+                </div>
+              </>
+            )}
+            {contact.location && (
+              <>
+                <div className="border-t border-dashed border-destructive/30" />
+                <div className="space-y-1">
+                  <p className="font-display text-sm text-foreground uppercase tracking-wide">Location</p>
+                  <p className="body-text text-sm">{contact.location}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
 
       {/* Instagram Strip */}
-      <section className="bg-background py-16 md:py-20 px-6 text-center">
-        <h2 className="font-display text-2xl text-foreground mb-2">Find Us On Instagram</h2>
-        <a
-          href="https://instagram.com/matkaandmethreads"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="body-text text-sm hover:text-primary transition-colors mb-8 inline-block"
-        >
-          @matkaandmethreads
-        </a>
-        <div className="max-w-5xl mx-auto mt-6">
-          <BeholdInstagram />
-        </div>
-      </section>
+      {instagram && (
+        <section className="bg-background py-16 md:py-20 px-6 text-center">
+          <h2 className="font-display text-2xl text-foreground mb-2">Find Us On Instagram</h2>
+          <a
+            href={instagram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="body-text text-sm hover:text-primary transition-colors mb-8 inline-block"
+          >
+            @{handle}
+          </a>
+          <div className="max-w-5xl mx-auto mt-6">
+            <BeholdInstagram />
+          </div>
+        </section>
+      )}
 
       {/* Closing Note */}
-      <section className="bg-warm-linen py-12 px-6 text-center">
-        <p className="font-display italic text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-          Thank You For Supporting Handmade. Please Enjoy Our Quality Products Made With Love, From Our Home To Yours.
-        </p>
-      </section>
+      {contact_page.closing_note && (
+        <section className="bg-warm-linen py-12 px-6 text-center">
+          <p className="font-display italic text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            {contact_page.closing_note}
+          </p>
+        </section>
+      )}
 
       <PatternStrip pattern="pattern2" />
       <Footer />

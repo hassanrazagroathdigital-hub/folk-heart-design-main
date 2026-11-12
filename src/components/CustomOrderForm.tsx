@@ -1,14 +1,17 @@
 import { useState } from "react";
+import { FORMSPREE_ENDPOINT } from "@/lib/cms/inquiries";
+import { useSiteSettings } from "@/lib/cms/hooks";
+import { FormError, HoneypotField, useInquirySubmit } from "@/hooks/use-inquiry-submit";
+
+const EMPTY = { fullName: "", email: "", instagram: "", productInterest: "", message: "" };
+
+const inputCls =
+  "w-full px-4 py-3 rounded-xl border border-border bg-background font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary";
 
 const CustomOrderForm = () => {
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    instagram: "",
-    productInterest: "",
-    message: "",
-  });
-  const [submitted, setSubmitted] = useState(false);
+  const { home } = useSiteSettings();
+  const [formData, setFormData] = useState(EMPTY);
+  const { submitted, setSubmitted, submitting, error, submit } = useInquirySubmit();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,95 +19,69 @@ const CustomOrderForm = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    try {
-      await fetch("https://formspree.io/f/mjgdawap", {
-        method: "POST",
-        body: new FormData(form),
-        headers: { Accept: "application/json" },
-      });
-      setSubmitted(true);
-    } catch {
-      setSubmitted(true);
-    }
+    const ok = await submit(
+      {
+        type: "general",
+        name: formData.fullName,
+        email: formData.email,
+        subject: formData.productInterest,
+        message: formData.message,
+        details: { instagram: formData.instagram, productInterest: formData.productInterest },
+      },
+      e.currentTarget,
+    );
+    if (ok) setFormData(EMPTY);
   };
 
   return (
     <section id="custom-order" className="bg-warm-linen py-20 md:py-28 px-6">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10">
-          <p className="eyebrow mb-3">inquiries & custom orders</p>
-          <h2 className="section-title-italic mb-4">Let's Create Something Special</h2>
-          <p className="body-text">
-            Want a custom piece/set or have questions about a product you see?
-            Fill out the form below and Emily will get back to you personally.
-          </p>
+          {home.inquiry_eyebrow && <p className="eyebrow mb-3">{home.inquiry_eyebrow}</p>}
+          <h2 className="section-title-italic mb-4">{home.inquiry_title}</h2>
+          {home.inquiry_body && <p className="body-text">{home.inquiry_body}</p>}
         </div>
 
         {submitted ? (
-          <div className="bg-card rounded-2xl p-10 shadow-[var(--shadow-card)] text-center space-y-4">
+          <div className="bg-card rounded-2xl p-10 shadow-[var(--shadow-card)] text-center space-y-4" role="status">
             <h3 className="font-display text-2xl text-foreground">Thank you! 💛</h3>
             <p className="body-text">
               Your inquiry has been sent. Emily will get back to you soon — keep an eye on your inbox!
             </p>
-            <button
-              onClick={() => setSubmitted(false)}
-              className="btn-secondary-cta"
-            >
+            <button onClick={() => setSubmitted(false)} className="btn-secondary-cta">
               send another inquiry
             </button>
           </div>
         ) : (
           <form
-            action="https://formspree.io/f/mjgdawap"
+            action={FORMSPREE_ENDPOINT}
             method="POST"
             onSubmit={handleSubmit}
-            className="bg-card rounded-2xl p-8 md:p-10 shadow-[var(--shadow-card)] space-y-5"
+            className="relative bg-card rounded-2xl p-8 md:p-10 shadow-[var(--shadow-card)] space-y-5"
           >
             <input type="hidden" name="_subject" value="New Inquiry from Website" />
+            <HoneypotField />
             <div>
-              <label className="font-body text-sm text-foreground block mb-1.5">Full Name *</label>
-              <input
-                type="text"
-                name="fullName"
-                required
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="Your full name"
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              <label htmlFor="hq-name" className="font-body text-sm text-foreground block mb-1.5">Full Name *</label>
+              <input id="hq-name" type="text" name="fullName" required maxLength={200} value={formData.fullName} onChange={handleChange} placeholder="Your full name" className={inputCls} />
             </div>
             <div>
-              <label className="font-body text-sm text-foreground block mb-1.5">Email *</label>
-              <input
-                type="email"
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="your@email.com"
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              <label htmlFor="hq-email" className="font-body text-sm text-foreground block mb-1.5">Email *</label>
+              <input id="hq-email" type="email" name="email" required maxLength={320} value={formData.email} onChange={handleChange} placeholder="your@email.com" className={inputCls} />
             </div>
             <div>
-              <label className="font-body text-sm text-foreground block mb-1.5">Instagram Handle</label>
-              <input
-                type="text"
-                name="instagram"
-                value={formData.instagram}
-                onChange={handleChange}
-                placeholder="@yourusername"
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              <label htmlFor="hq-ig" className="font-body text-sm text-foreground block mb-1.5">Instagram Handle</label>
+              <input id="hq-ig" type="text" name="instagram" maxLength={100} value={formData.instagram} onChange={handleChange} placeholder="@yourusername" className={inputCls} />
             </div>
             <div>
-              <label className="font-body text-sm text-foreground block mb-1.5">Product Interest *</label>
+              <label htmlFor="hq-interest" className="font-body text-sm text-foreground block mb-1.5">Product Interest *</label>
               <select
+                id="hq-interest"
                 name="productInterest"
                 required
                 value={formData.productInterest}
                 onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className={`${inputCls} text-foreground`}
               >
                 <option value="">Select a category...</option>
                 <option value="Matching Mother & Child Set">Matching Mother & Child Set</option>
@@ -116,23 +93,24 @@ const CustomOrderForm = () => {
               </select>
             </div>
             <div>
-              <label className="font-body text-sm text-foreground block mb-1.5">Message *</label>
+              <label htmlFor="hq-message" className="font-body text-sm text-foreground block mb-1.5">Message *</label>
               <textarea
+                id="hq-message"
                 name="message"
                 required
+                maxLength={5000}
                 value={formData.message}
                 onChange={handleChange}
                 placeholder="Tell Emily and Mary what you're looking for — sizes, colors, occasion, or any details about your order..."
                 rows={5}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className={`${inputCls} resize-none`}
               />
             </div>
-            <button type="submit" className="btn-primary-cta w-full text-center">
-              send inquiry
+            <FormError message={error} />
+            <button type="submit" disabled={submitting} className="btn-primary-cta w-full text-center disabled:opacity-60">
+              {submitting ? "sending…" : "send inquiry"}
             </button>
-            <p className="font-body text-xs text-muted-foreground text-center">
-              Payment is handled personally via PayPal after Emily confirms your order.
-            </p>
+            {home.inquiry_note && <p className="font-body text-xs text-muted-foreground text-center">{home.inquiry_note}</p>}
           </form>
         )}
       </div>
